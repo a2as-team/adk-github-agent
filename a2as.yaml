@@ -1,0 +1,91 @@
+manifest:
+  version: "0.1.3"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: arjunprabhulal/adk-github-agent
+    source: https://github.com/arjunprabhulal/adk-github-agent
+    branch: main
+    commit: "60f12e2a"
+    scope: [github-agent/agent.py]
+  issued:
+    by: A2AS.org
+    at: '2026-02-11T16:54:55Z'
+    url: https://a2as.org/certified/agents/arjunprabhulal/adk-github-agent
+  signatures:
+    digest: sha256:j2rS-N8klWFfr0sgCDr6ahldrFyMNzM769ul5w8P4k0
+    key: ed25519:DCUVtnFjg_RndHeV6quQRpE1YbcFDF2-VL9CXra9KhU
+    sig: ed25519:GACSz8rFBd5Zh0H_5SPhvJ3HUnJgZKplo0Dcgj12htM3kwqx6UjEZHFTjE9XR4kEdI08xeyEPZHGIOcSWaAyDQ
+
+agents:
+  github_agent:
+    type: instance
+    models: [gemini-2.5-pro-preview-03-25]
+    tools: [tools]
+    params:
+      name: github_agent
+      description: GitHub API Agent
+      instruction: [You are a GitHub API agent that interacts with GitHub's REST API., 'When working with the GitHub API:',
+        '- Use parameters provided by the user', '- Ask for clarification if required parameters are missing', '- Format responses
+          clearly for the user', '- Handle errors gracefully and explain issues in simple terms', 'For content creation operations:',
+        '- Use names and identifiers exactly as specified by the user', '- Add helpful descriptions when allowed by the API',
+        '- Apply sensible defaults for optional parameters when not specified', Always inform the user about the actions you're
+          taking and the results received.]
+      function: create_github_agent
+
+models:
+  gemini-2.5-pro-preview-03-25:
+    type: literal
+    agents: [github_agent]
+
+tools:
+  tools:
+    type: function
+    agents: [github_agent]
+    params:
+      dynamic: "True"
+
+imports:
+  Agent: google.adk.agents.Agent
+  agent: agent
+  json: json
+  logging: logging
+  OpenAPIToolset: google.adk.tools.openapi_tool.openapi_spec_parser.openapi_toolset.OpenAPIToolset
+  os: os
+  sys: sys
+  token_to_scheme_credential: google.adk.tools.openapi_tool.auth.auth_helpers.token_to_scheme_credential
+
+functions:
+  create_github_agent:
+    type: sync
+    module: github-agent.agent
+    args: [api_spec_path, token_env_var, auth_prefix]
+  load_api_spec:
+    type: sync
+    module: github-agent.agent
+    args: [path]
+
+variables:
+  token_env_var:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [github-agent.agent]
+
+files:
+  api.github.com.fixed.json:
+    type: pattern
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      pattern: [os.path.dirname(), api.github.com.fixed.json]
+  api_spec_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.exists]
+  path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [open, json.load]
+      alias: [f]
